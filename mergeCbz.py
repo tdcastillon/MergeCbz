@@ -11,7 +11,7 @@ def extract_cbz(cbz_path, extract_to):
 def create_cbz(folder_path, cbz_path):
     with zipfile.ZipFile(cbz_path, 'w') as zip_ref:
         for root, dirs, files in os.walk(folder_path):
-            for file in sorted(files):
+            for file in sorted(files):  # Sorting files to maintain order
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, folder_path)
                 zip_ref.write(file_path, arcname)
@@ -19,6 +19,7 @@ def create_cbz(folder_path, cbz_path):
 def merge_cbz(cbz_paths, output_cbz_path, remove_last_page):
     temp_dirs = []
     merged_dir = "merged_cbz"
+    page = 0
 
     # Create the merged directory
     os.makedirs(merged_dir, exist_ok=True)
@@ -31,12 +32,23 @@ def merge_cbz(cbz_paths, output_cbz_path, remove_last_page):
         
         extract_cbz(cbz_path, temp_dir)
         
+        # remove xml files
+        for file in sorted(os.listdir(temp_dir)):
+            if file.endswith(".xml"):
+                os.remove(os.path.join(temp_dir, file))
+     
         if remove_last_page:
             last_page = sorted(os.listdir(temp_dir))[-1]
             os.remove(os.path.join(temp_dir, last_page))
+        
+        
+        # rename files to avoid conficts
+        for file in sorted(os.listdir(temp_dir)):
+            page += 1
+            shutil.move(os.path.join(temp_dir, file), os.path.join(temp_dir, f"page_{page}.jpg"))
 
         # Copy all files to the merged directory
-        for file in sorted(os.listdir(temp_dir)):
+        for file in sorted(os.listdir(temp_dir)):  # Sorting files to maintain order
             shutil.copy(os.path.join(temp_dir, file), os.path.join(merged_dir, file))
 
     # Create the merged CBZ
@@ -58,7 +70,7 @@ if not cbz_paths:
 
 output_cbz_path = filedialog.asksaveasfilename(title="Save merged CBZ as", defaultextension=".cbz", filetypes=[("CBZ files", "*.cbz")])
 if not output_cbz_path:
-    print("No output file specified. Exiting.")
+    print("No output CBZ file specified. Exiting.")
     exit()
 
 remove_last_page = simpledialog.askstring("Remove Last Page", "Do you want to remove the last page of each CBZ? (yes/no)").lower() == 'yes'
